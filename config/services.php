@@ -35,4 +35,9 @@ return [
         ],
     ],
 
+    'ecommerce' => [
+        'url' => env('ECOMMERCE_API_URL', 'https://api1.eless.com.pe/api/v1'),
+        'token' => env('ECOMMERCE_API_TOKEN'),
+    ],
+
 ];
