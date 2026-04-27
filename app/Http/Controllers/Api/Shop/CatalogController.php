@@ -43,6 +43,10 @@ class CatalogController extends Controller
             $q->where('categoria_principal', $category);
         }
 
+        if ($gender = $request->query('genero')) {
+            $q->where('genero', $gender);
+        }
+
         if ($priceMin = $request->query('precio_min')) {
             $q->where('precio', '>=', (float) $priceMin);
         }
@@ -211,6 +215,7 @@ class CatalogController extends Controller
             'sizes' => $sizes,
             'colors' => $p->color ? [$p->color] : [],
             'badge' => $badge,
+            'gender' => $p->genero, // HOMBRE | MUJER | UNISEX | null
             'stock' => (int) $p->stock_total,
             'rating' => 4.8, // placeholder hasta tener reviews reales
         ];
