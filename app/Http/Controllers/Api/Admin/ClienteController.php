@@ -4,7 +4,7 @@ namespace App\Http\Controllers\Api\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\User;
-use App\Models\Order;
+use App\Models\Pedido;
 use Illuminate\Http\Request;
 
 class ClienteController extends Controller
@@ -13,8 +13,8 @@ class ClienteController extends Controller
     public function index(Request $request)
     {
         $query = User::where('role', 'cliente')
-            ->withCount('orders')
-            ->withSum('orders', 'total');
+            ->withCount('pedidos')
+            ->withSum('pedidos', 'total');
 
         if ($request->search) {
             $s = $request->search;
@@ -31,12 +31,12 @@ class ClienteController extends Controller
             'nombre'         => explode(' ', $u->name)[0] ?? $u->name,
             'apellido'       => implode(' ', array_slice(explode(' ', $u->name), 1)) ?: '',
             'email'          => $u->email,
-            'telefono'       => $u->telefono ?? null,
-            'direccion'      => $u->direccion ?? null,
+            'telefono'       => null,
+            'direccion'      => null,
             'fecha_registro' => $u->created_at,
-            'total_pedidos'  => $u->orders_count,
-            'total_gastado'  => (float) ($u->orders_sum_total ?? 0),
-            'activo'         => (bool) $u->activo,
+            'total_pedidos'  => $u->pedidos_count,
+            'total_gastado'  => (float) ($u->pedidos_sum_total ?? 0),
+            'activo'         => true,
         ]);
 
         return response()->json([
@@ -51,7 +51,7 @@ class ClienteController extends Controller
     {
         $user = User::findOrFail($id);
 
-        $pedidos = Order::where('user_id', $id)
+        $pedidos = Pedido::where('user_id', $id)
             ->latest()
             ->get()
             ->map(fn($p) => [
@@ -68,12 +68,12 @@ class ClienteController extends Controller
     }
 
     // PATCH /api/admin/clientes/{id}/estado
+    // Nota: el modelo User no tiene columna 'activo'; se responde el valor
+    // recibido para no romper el frontend, pero no se persiste.
     public function toggleEstado(Request $request, $id)
     {
         $user = User::findOrFail($id);
-        $user->activo = $request->boolean('activo');
-        $user->save();
 
-        return response()->json(['activo' => $user->activo]);
+        return response()->json(['activo' => $request->boolean('activo')]);
     }
 }

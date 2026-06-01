@@ -3,8 +3,8 @@
 namespace App\Http\Controllers\Api\Admin;
 
 use App\Http\Controllers\Controller;
-use App\Models\Product;
-use App\Models\Order;
+use App\Models\Producto;
+use App\Models\Pedido;
 use App\Models\User;
 use Illuminate\Support\Facades\DB;
 use Carbon\Carbon;
@@ -16,38 +16,37 @@ class StatsController extends Controller
         $hoy = Carbon::today();
 
         // Ventas de hoy (suma de pedidos entregados o procesando)
-        $ventas_hoy = Order::whereDate('created_at', $hoy)
+        $ventas_hoy = Pedido::whereDate('created_at', $hoy)
             ->whereIn('estado', ['entregado', 'procesando', 'enviado'])
             ->sum('total');
 
         // Total de pedidos
-        $pedidos_total = Order::count();
+        $pedidos_total = Pedido::count();
 
         // Total de productos activos
-        $productos_total = Product::where('activo', true)->count();
+        $productos_total = Producto::where('activo', true)->count();
 
         // Total de clientes (usuarios con rol cliente)
         $clientes_total = User::where('role', 'cliente')->count();
 
         // Últimos 5 pedidos
-        $pedidos_recientes = Order::with('user')
+        $pedidos_recientes = Pedido::with('user')
             ->latest()
             ->take(5)
             ->get()
             ->map(fn($p) => [
                 'id'              => $p->id,
-                'cliente_nombre'  => $p->user?->name ?? $p->nombre_cliente ?? 'Cliente',
-                'cliente_email'   => $p->user?->email ?? '',
+                'cliente_nombre'  => $p->user?->name ?? trim(($p->contacto_nombres ?? '') . ' ' . ($p->contacto_apellidos ?? '')) ?: 'Cliente',
+                'cliente_email'   => $p->user?->email ?? $p->contacto_email ?? '',
                 'total'           => (float) $p->total,
                 'estado'          => $p->estado,
                 'fecha'           => $p->created_at,
             ]);
 
-        // Top 5 productos más vendidos
-        $productos_top = DB::table('order_items')
-            ->join('products', 'order_items.product_id', '=', 'products.id')
-            ->select('products.nombre', DB::raw('SUM(order_items.cantidad) as vendidos'))
-            ->groupBy('products.id', 'products.nombre')
+        // Top 5 productos más vendidos (el nombre ya está desnormalizado en pedido_items)
+        $productos_top = DB::table('pedido_items')
+            ->select('producto_nombre as nombre', DB::raw('SUM(cantidad) as vendidos'))
+            ->groupBy('producto_nombre')
             ->orderByDesc('vendidos')
             ->take(5)
             ->get()

@@ -7,7 +7,9 @@ use App\Http\Controllers\Api\Admin\BannerController;
 use App\Http\Controllers\Api\Admin\ClienteController;
 use App\Http\Controllers\Api\Admin\CuponController;
 use App\Http\Controllers\Api\Admin\ConfiguracionController;
+use App\Http\Controllers\Api\Admin\AdminHomeController;
 use App\Http\Controllers\Api\Auth\AuthController;
+use App\Http\Controllers\Api\HomeController;
 use App\Http\Controllers\Api\Shop\CatalogController;
 use App\Http\Controllers\Api\Shop\OrderController;
 use Illuminate\Support\Facades\Route;
@@ -33,13 +35,22 @@ Route::prefix('shop')->controller(CatalogController::class)->group(function () {
     Route::get('categorias', 'categorias');
 });
 
+// Crear pedido: PÚBLICO (permite compra como invitado). Si viene token,
+// el pedido se asocia al usuario; si no, queda como invitado (user_id null).
+Route::prefix('shop')->controller(OrderController::class)->group(function () {
+    Route::post('pedidos', 'store');
+});
+
+// Ver pedidos propios: requiere sesión.
 Route::prefix('shop')->middleware('auth:sanctum')->controller(OrderController::class)->group(function () {
     Route::get('pedidos', 'index');
-    Route::post('pedidos', 'store');
     Route::get('pedidos/{numero}', 'show');
 });
 
-Route::prefix('admin')->group(function () {
+// Homepage pública (secciones activas resueltas con datos reales)
+Route::get('home/secciones', [HomeController::class, 'index']);
+
+Route::prefix('admin')->middleware('auth:sanctum')->group(function () {
 
     Route::apiResource('productos', ProductController::class)
         ->parameters(['productos' => 'product']);
@@ -73,4 +84,12 @@ Route::prefix('admin')->group(function () {
     Route::get('configuracion', [ConfiguracionController::class, 'index']);
     Route::put('configuracion', [ConfiguracionController::class, 'update']);
     Route::post('configuracion/logo', [ConfiguracionController::class, 'uploadLogo']);
+
+    // Homepage CMS — secciones (reordenar ANTES de {id} para evitar colisión)
+    Route::get('home/secciones', [AdminHomeController::class, 'index']);
+    Route::post('home/secciones', [AdminHomeController::class, 'store']);
+    Route::put('home/secciones/reordenar', [AdminHomeController::class, 'reorder']);
+    Route::get('home/secciones/{id}', [AdminHomeController::class, 'show']);
+    Route::put('home/secciones/{id}', [AdminHomeController::class, 'update']);
+    Route::delete('home/secciones/{id}', [AdminHomeController::class, 'destroy']);
 });

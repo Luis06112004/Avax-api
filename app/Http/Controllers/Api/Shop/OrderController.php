@@ -11,9 +11,9 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
 /**
- * Pedidos del cliente autenticado.
+ * Pedidos de la tienda.
  *
- *   POST /api/shop/pedidos          crea pedido (auth:sanctum)
+ *   POST /api/shop/pedidos          crea pedido (PÚBLICO — invitado o con sesión)
  *   GET  /api/shop/pedidos          lista pedidos del usuario (auth:sanctum)
  *   GET  /api/shop/pedidos/{numero} detalle por número (auth:sanctum)
  */
@@ -87,7 +87,8 @@ class OrderController extends Controller
         $envioCosto = (float) $data['envio_metodo']['costo'];
         $total = $subtotal + $envioCosto;
 
-        $userId = $request->user()->id;
+        // Usuario autenticado si vino token Sanctum; null si compra como invitado.
+        $userId = auth('sanctum')->id();
 
         $pedido = DB::transaction(function () use ($data, $userId, $subtotal, $envioCosto, $total) {
             $numero = $this->generarNumero();
